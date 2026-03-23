@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Helper Functions ---
+    function isSuperAdmin() {
+      // Check if the user document exists and has the 'super_admin' role.
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    function hasPermission(resource, operation) {
+      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      // Ensure user document and permissions objects exist before checking.
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && 'permissions' in userDoc.data
+          && resource in userDoc.data.permissions
+          && operation in userDoc.data.permissions[resource]
+          && userDoc.data.permissions[resource][operation] == true;
+    }
+    
+    // --- Members Collection ---
+    match /members/{memberId} {
+      allow read: if isSuperAdmin() || hasPermission('members', 'read');
+      allow create: if isSuperAdmin() || hasPermission('members', 'create');
+      allow update: if isSuperAdmin() || hasPermission('members', 'update');
+      allow delete: if isSuperAdmin() || hasPermission('members', 'delete');
+    }
+
+    // --- Transactions Collection ---
+    match /transactions/{transactionId} {
+      allow read: if isSuperAdmin() || hasPermission('transactions', 'read');
+      allow create: if isSuperAdmin() || hasPermission('transactions', 'create');
+      allow update: if isSuperAdmin() || hasPermission('transactions', 'update');
+      allow delete: if isSuperAdmin() || hasPermission('transactions', 'delete');
+    }
+
+    // --- Roles Collection ---
+    match /roles/{roleId} {
+      // Allow reading roles if user can update team members (to populate dropdown).
+      // Allow Super Admins to read all roles.
+      allow read: if isSuperAdmin() || hasPermission('team', 'update') || hasPermission('team', 'create');
+      // Only Super Admins can create, update, or delete roles.
+      allow write: if isSuperAdmin();
+    }
+    
+    // --- Users Collection ---
+    match /users/{userId} {
+      // Allow a user to get their own document. This is crucial for the helper functions to work without recursion.
+      allow get: if request.auth.uid == userId;
+
+      // Allow users with permission to list the collection.
+      allow list: if isSuperAdmin() || hasPermission('team', 'read');
+
+      // Allow any authenticated user to create their own profile document.
+      allow create: if request.auth.uid == userId || isSuperAdmin() || hasPermission('team', 'create');
+
+      // Allow a user to update their own non-sensitive info.
+      // Allow Super Admin or a user with 'team.update' to update roles/permissions.
+      allow update: if (request.auth.uid == userId 
+                        && !('role' in request.resource.data)
+                        && !('permissions' in request.resource.data))
+                     || (isSuperAdmin() || hasPermission('team', 'update'));
+                         
+      // Allow Super Admin or a user with 'team.delete' to delete other users.
+      allow delete: if (isSuperAdmin() || hasPermission('team', 'delete')) && request.auth.uid != userId;
+    }
+
+    // --- Logs Collection ---
+    // --- Logs Collection ---
+    // Update to recursive match for collectionGroup queries
+    match /{path=**}/logs/{logId} {
+      // Any authenticated user can create a log entry, but only for themselves.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.actorId;
+
+      // Super Admins can read all logs.
+      // Team Members can only read logs they created.
+      allow read: if isSuperAdmin() || (hasPermission('team', 'read') && resource.data.actorId == request.auth.uid);
+      
+      // Logs are immutable.
+      allow update, delete: if false;
+    }
+
+    // --- Dashboard Summary Document ---
+    match /dashboard/summary {
+      allow read: if isSuperAdmin() || hasPermission('dashboard', 'read');
+    }
+  }
+}

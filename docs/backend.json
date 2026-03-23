@@ -1,0 +1,323 @@
+{
+  "entities": {
+    "Member": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Member",
+      "type": "object",
+      "description": "Represents a member in the Al Fajr application.",
+      "properties": {
+        "creatorId": {
+          "type": "string",
+          "description": "The UID of the user who created the member."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "The full name of the member."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "The mobile number of the member."
+        },
+        "address": {
+          "type": "string",
+          "description": "The address of the member."
+        },
+        "membershipType": {
+          "type": "string",
+          "description": "The type of membership the member has."
+        },
+        "dateOfJoining": {
+          "type": "string",
+          "description": "The date the member joined the Al Fajr.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the member (e.g., active, inactive)."
+        },
+        "openingBalance": {
+          "type": "number",
+          "description": "The opening balance of the member's account."
+        },
+        "adharNumber": {
+          "type": "string",
+          "description": "The Adhar number of the member."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL for the member's photo from Cloudinary."
+        },
+        "photoId": {
+          "type": "string",
+          "description": "The Cloudinary ID for the member's photo."
+        }
+      },
+      "required": [
+        "creatorId",
+        "fullName",
+        "mobileNumber",
+        "address",
+        "membershipType",
+        "dateOfJoining",
+        "status",
+        "openingBalance",
+        "adharNumber",
+        "photoUrl",
+        "photoId"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction for a member.",
+      "properties": {
+        "creatorId": {
+          "type": "string",
+          "description": "The UID of the user who created the transaction."
+        },
+        "creatorName": {
+          "type": "string",
+          "description": "The name of the user who created the transaction."
+        },
+        "creatorEmail": {
+          "type": "string",
+          "description": "The email of the user who created the transaction."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "The ID of the member this transaction belongs to."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of transaction.",
+          "enum": ["credit", "debit"]
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the transaction."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the transaction."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the transaction.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "creatorId",
+        "creatorName",
+        "creatorEmail",
+        "memberId",
+        "type",
+        "amount",
+        "date"
+      ]
+    },
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User Profile",
+      "description": "Stores user-specific data like role and permissions.",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user.",
+          "enum": ["super_admin", "team_member"]
+        },
+        "permissions": {
+          "$ref": "#/entities/Permissions"
+        },
+        "assignedRoleId": {
+          "type": "string",
+          "description": "The ID of the role assigned to the user from the /roles collection."
+        },
+        "assignedRoleName": {
+          "type": "string",
+          "description": "The name of the role assigned to the user."
+        }
+      },
+      "required": ["fullName", "email", "role", "permissions"]
+    },
+    "Permissions": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Permissions",
+      "description": "Defines the granular permissions for a user role.",
+      "type": "object",
+      "properties": {
+        "dashboard": {
+          "type": "object",
+          "properties": {
+            "read": { "type": "boolean" }
+          },
+          "required": ["read"]
+        },
+        "members": {
+          "type": "object",
+          "properties": {
+            "create": { "type": "boolean" },
+            "read": { "type": "boolean" },
+            "update": { "type": "boolean" },
+            "delete": { "type": "boolean" }
+          },
+          "required": ["create", "read", "update", "delete"]
+        },
+        "transactions": {
+          "type": "object",
+          "properties": {
+            "create": { "type": "boolean" },
+            "read": { "type": "boolean" },
+            "update": { "type": "boolean" },
+            "delete": { "type": "boolean" }
+          },
+          "required": ["create", "read", "update", "delete"]
+        },
+        "team": {
+          "type": "object",
+          "properties": {
+            "create": { "type": "boolean" },
+            "read": { "type": "boolean" },
+            "update": { "type": "boolean" },
+            "delete": { "type": "boolean" }
+          },
+          "required": ["create", "read", "update", "delete"]
+        }
+      }
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines a set of permissions that can be assigned to users.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the role."
+        },
+        "permissions": {
+          "$ref": "#/entities/Permissions"
+        }
+      },
+      "required": ["name", "permissions"]
+    },
+    "Log": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Log",
+      "type": "object",
+      "description": "Represents an activity log entry in the system.",
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "description": "The UID of the user who performed the action."
+        },
+        "actorName": {
+          "type": "string",
+          "description": "The name of the user who performed the action."
+        },
+        "actorEmail": {
+          "type": "string",
+          "description": "The email of the user who performed the action."
+        },
+        "actorRole": {
+          "type": "string",
+          "description": "The role of the user who performed the action."
+        },
+        "actionType": {
+          "type": "string",
+          "description": "The type of action performed (e.g., 'user_login', 'member_created')."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "The type of entity that was affected (e.g., 'member', 'transaction')."
+        },
+        "entityId": {
+          "type": "string",
+          "description": "The ID of the entity that was affected."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp of when the action occurred."
+        }
+      },
+      "required": [
+        "actorId",
+        "actorName",
+        "actorEmail",
+        "actorRole",
+        "actionType",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/members/{memberId}",
+        "definition": {
+          "entityName": "Member",
+          "schema": {
+            "$ref": "#/entities/Member"
+          },
+          "description": "Stores member data. The 'memberId' is the unique identifier for each member."
+        }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/entities/Transaction"
+          },
+          "description": "Stores all transactions. The 'transactionId' is the unique identifier for each transaction."
+        }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/entities/UserProfile"
+          },
+          "description": "Stores user profiles, including roles and permissions."
+        }
+      },
+      {
+        "path": "/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/entities/Role"
+          },
+          "description": "Stores predefined roles with specific permission sets."
+        }
+      },
+      {
+        "path": "/logs/{logId}",
+        "definition": {
+          "entityName": "Log",
+          "schema": {
+            "$ref": "#/entities/Log"
+          },
+          "description": "Stores activity logs for important system events."
+        }
+      }
+    ],
+    "reasoning": "The data model supports members, transactions, and user profiles for role-based access control. A super_admin has full access, while team_members have granular permissions managed by the super_admin."
+  }
+}

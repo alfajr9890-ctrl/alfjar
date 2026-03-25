@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { CalendarIcon, PlusCircle, Check, ChevronsUpDown } from 'lucide-react';
 import { collection, doc, setDoc } from 'firebase/firestore';
 
 import { addTransactionSchema, type AddTransactionSchema } from '@/lib/schemas';
@@ -24,8 +24,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 interface Member {
     id: string;
@@ -34,6 +41,8 @@ interface Member {
 
 export function AddTransactionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [memberOpen, setMemberOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
   const { toast } = useToast();
   const router = useRouter();
   const { firestore, user } = useFirebase();
@@ -123,24 +132,75 @@ export function AddTransactionForm() {
           <FormField
             control={form.control}
             name="memberId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Member</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoadingMembers}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={isLoadingMembers ? "Loading members..." : "Select a member"} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {members?.map(member => (
-                        <SelectItem key={member.id} value={member.id}>{member.fullName}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const selectedMember = members?.find(m => m.id === field.value);
+              const filteredMembers = members?.filter(m =>
+                m.fullName.toLowerCase().includes(memberSearch.toLowerCase())
+              );
+              return (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Member</FormLabel>
+                  <Popover open={memberOpen} onOpenChange={setMemberOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={memberOpen}
+                          disabled={isLoadingMembers}
+                          className={cn(
+                            'w-full justify-between font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {isLoadingMembers
+                            ? 'Loading members...'
+                            : selectedMember
+                            ? selectedMember.fullName
+                            : 'Select a member'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search member..."
+                          value={memberSearch}
+                          onValueChange={setMemberSearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>No member found.</CommandEmpty>
+                          <CommandGroup>
+                            {filteredMembers?.map(member => (
+                              <CommandItem
+                                key={member.id}
+                                value={member.id}
+                                onMouseDown={e => e.preventDefault()}
+                                onSelect={() => {
+                                  field.onChange(member.id);
+                                  setMemberSearch('');
+                                  setMemberOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    field.value === member.id ? 'opacity-100' : 'opacity-0'
+                                  )}
+                                />
+                                {member.fullName}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
            <FormField
             control={form.control}

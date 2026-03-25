@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function ViewTeamMemberPage() {
     const params = useParams();
     const userId = params.userId as string;
-    const { profile: currentUserProfile } = useUserProfile();
+    const { profile: currentUserProfile, isLoading: isProfileLoading } = useUserProfile();
     const { firestore } = useFirebase();
 
     const userDocRef = useMemoFirebase(() => {
@@ -28,7 +28,7 @@ export default function ViewTeamMemberPage() {
 
     const { data: user, isLoading } = useDoc<UserProfile>(userDocRef);
 
-    if (isLoading) {
+    if (isLoading || isProfileLoading || !currentUserProfile) {
         return <TeamMemberDetailSkeleton />;
     }
 

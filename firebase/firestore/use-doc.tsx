@@ -61,34 +61,47 @@ export function useDoc<T = any>(
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      memoizedDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
-        } else {
-          // Document does not exist
+    try {
+      const unsubscribe = onSnapshot(
+        memoizedDocRef,
+        (snapshot: DocumentSnapshot<DocumentData>) => {
+          if (snapshot.exists()) {
+            setData({ ...(snapshot.data() as T), id: snapshot.id });
+          } else {
+            // Document does not exist
+            setData(null);
+          }
+          setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+          setIsLoading(false);
+        },
+        (error: FirestoreError) => {
+          if (error.code === 'permission-denied') {
+            console.warn('No permission to read doc:', memoizedDocRef.path);
+            setError(error);
+            setData(null);
+            setIsLoading(false);
+            return; // fail silently, don't crash UI
+          }
+
+          const contextualError = new FirestorePermissionError({
+            operation: 'read',
+            path: memoizedDocRef.path,
+          });
+
+          setError(contextualError);
           setData(null);
+          setIsLoading(false);
+
+          // trigger global error propagation
+          errorEmitter.emit('permission-error', contextualError);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
-        setIsLoading(false);
-      },
-      (error: FirestoreError) => {
-        const contextualError = new FirestorePermissionError({
-          operation: 'read',
-          path: memoizedDocRef.path,
-        });
+      );
 
-        setError(contextualError);
-        setData(null);
-        setIsLoading(false);
-
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
-      }
-    );
-
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err) {
+      console.error('use-doc.tsx error:', err);
+      return () => {};
+    }
   }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
 
   return { data, isLoading, error };

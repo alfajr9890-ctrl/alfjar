@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { UserPlus } from 'lucide-react';
-import { collection } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 
-import { useFirebase, useMemoFirebase } from '@/firebase/provider';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useFirebase } from '@/firebase/provider';
+import { useUserProfile } from '@/firebase/auth/use-user-profile';
 import { addTeamMemberSchema, type AddTeamMemberSchema, type RoleSchema } from '@/lib/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { createTeamMember } from '@/firebase/auth/admin-create-user';
@@ -26,8 +26,28 @@ export function AddTeamMemberForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const rolesCollection = useMemoFirebase(() => firestore ? collection(firestore, 'roles') : null, [firestore]);
-  const { data: roles, isLoading: areRolesLoading } = useCollection<Role>(rolesCollection);
+  const { profile: currentUserProfile } = useUserProfile();
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [areRolesLoading, setAreRolesLoading] = useState(true);
+
+  useEffect(() => {
+    if (!firestore || !currentUserProfile || currentUserProfile.role !== 'super_admin') return;
+
+    const ref = collection(firestore, 'roles');
+    const unsub = onSnapshot(ref, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Role[];
+      setRoles(data);
+      setAreRolesLoading(false);
+    }, (error) => {
+      console.error('Permission error in dashboard/team:', error.message);
+      setAreRolesLoading(false);
+    });
+
+    return () => unsub();
+  }, [firestore, currentUserProfile]);
 
   const form = useForm<AddTeamMemberSchema>({
     resolver: zodResolver(addTeamMemberSchema),

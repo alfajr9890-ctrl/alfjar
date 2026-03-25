@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { collection, doc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { MoreVertical, Pencil, Eye, User, Trash2 } from 'lucide-react';
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -27,8 +28,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from '@/components/ui/badge';
 
-import { useCollection } from '@/firebase/firestore/use-collection';
-import { useFirebase, useMemoFirebase } from '@/firebase/provider';
+import { useFirebase } from '@/firebase/provider';
 import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Skeleton } from '../ui/skeleton';
 import { useUserProfile } from '@/firebase/auth/use-user-profile';
@@ -38,12 +38,30 @@ export function TeamList() {
   const { firestore } = useFirebase();
   const { profile: currentUserProfile, isLoading: isProfileLoading } = useUserProfile();
 
-  const usersCollection = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'users');
-  }, [firestore]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [areUsersLoading, setAreUsersLoading] = useState(true);
 
-  const { data: users, isLoading: areUsersLoading } = useCollection<UserProfile>(usersCollection);
+  useEffect(() => {
+    if (!firestore || !currentUserProfile || currentUserProfile.role !== 'super_admin') {
+        if (!firestore) return;
+        return;
+    }
+
+    const ref = collection(firestore, 'users');
+    const unsub = onSnapshot(ref, (snapshot) => {
+      const data = snapshot.docs.map(d => ({
+        id: d.id,
+        ...d.data()
+      })) as UserProfile[];
+      setUsers(data);
+      setAreUsersLoading(false);
+    }, (error) => {
+      console.error('Permission error in dashboard/team:', error.message);
+      setAreUsersLoading(false);
+    });
+
+    return () => unsub();
+  }, [firestore, currentUserProfile]);
 
   const handleDelete = (userId: string) => {
     if (!firestore) return;

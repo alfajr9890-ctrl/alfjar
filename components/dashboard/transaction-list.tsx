@@ -13,6 +13,7 @@ import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { generateTransactionPDF, generateSingleTransactionPDF } from '@/lib/pdf-utils';
 import { generateTransactionCSV, generateSingleTransactionCSV } from '@/lib/csv-utils';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -410,7 +411,17 @@ export function TransactionList() {
                                         <TableCell>{transaction.creatorName}</TableCell>
                                         <TableCell>{formatDateSafe(transaction.date)}</TableCell>
                                         <TableCell>₹{transaction.amount.toLocaleString()}</TableCell>
-                                        <TableCell><Badge variant={transaction.type === 'credit' ? 'default' : 'destructive'} className="capitalize bg-accent">{transaction.type}</Badge></TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={transaction.type === 'credit' ? 'secondary' : 'destructive'} 
+                                                className={cn(
+                                                    "capitalize font-medium shadow-sm",
+                                                    transaction.type === 'credit' ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20" : ""
+                                                )}
+                                            >
+                                                {transaction.type}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>

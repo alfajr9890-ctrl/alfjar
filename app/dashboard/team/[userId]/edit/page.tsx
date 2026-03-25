@@ -7,12 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { EditTeamMemberForm } from '@/components/dashboard/edit-team-member-form';
 import { AlertCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function EditTeamMemberPage() {
   const params = useParams();
   const userId = params.userId as string;
   const router = useRouter();
-  const { profile } = useUserProfile();
+  const { profile, isLoading: isProfileLoading } = useUserProfile();
+
+  if (isProfileLoading || !profile || profile.role === undefined) {
+    return (
+      <div className="p-8">
+        <Skeleton className="h-[600px] w-full" />
+      </div>
+    );
+  }
 
   // Redirect if not a super admin
   if (profile && profile.role !== 'super_admin') {

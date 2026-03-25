@@ -4,10 +4,19 @@ import { PlusCircle } from 'lucide-react';
 import { useUserProfile } from '@/firebase/auth/use-user-profile';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TeamList } from '@/components/dashboard/team-list';
 
 export default function TeamPage() {
-  const { profile } = useUserProfile();
+  const { profile, isLoading } = useUserProfile();
+
+  if (isLoading || !profile) {
+    return (
+      <div className="p-8">
+        <Skeleton className="h-[600px] w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">

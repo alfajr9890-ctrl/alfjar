@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 
+import { SecuritySection } from './security-section';
+
 // Stub schema for future edit profile form
 const editProfileSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -106,10 +108,10 @@ export default function ProfilePage() {
                                 </div>
                                 <CardDescription className="text-base">{profile.email}</CardDescription>
                             </div>
-                            <Button className="mt-4 sm:mt-0 sm:ml-auto" variant="outline" onClick={handleSubmit(onSubmit)}>
+                            {/* <Button className="mt-4 sm:mt-0 sm:ml-auto" variant="outline" onClick={handleSubmit(onSubmit)}>
                                 <Edit2 className="h-4 w-4 mr-2" />
                                 Edit Profile
-                            </Button>
+                            </Button> */}
                         </CardHeader>
 
                         <CardContent className="pt-6">
@@ -145,15 +147,17 @@ export default function ProfilePage() {
                             )}
                         </CardContent>
 
-                        <CardFooter className="border-t bg-muted/50 px-6 py-4">
+                        {/* <CardFooter className="border-t bg-muted/50 px-6 py-4">
                             <div className="flex w-full justify-end">
                                 <Button variant="destructive" onClick={handleSignOut} className="w-full sm:w-auto">
                                     <LogOut className="h-4 w-4 mr-2" />
                                     Sign Out
                                 </Button>
                             </div>
-                        </CardFooter>
+                        </CardFooter> */}
                     </Card>
+
+                    <SecuritySection />
                 </div>
             </div>
         </div>

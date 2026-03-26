@@ -7,15 +7,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { LogIn, UserPlus, Eye, EyeOff } from 'lucide-react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, type User, type UserCredential } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  type UserCredential,
+  sendPasswordResetEmail
+} from 'firebase/auth';
 
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
-import { findOrCreateUserDocument, type UserProfile } from '@/firebase/auth/user-profile';
+import { findOrCreateUserDocument } from '@/firebase/auth/user-profile';
 import { createLog } from '@/lib/logger';
 
 const loginSchema = z.object({
@@ -27,8 +32,12 @@ const loginSchema = z.object({
 type AuthFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'forgot_password'>('signin');
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
@@ -53,6 +62,33 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '', fullName: '' },
     mode: 'onChange'
   });
+
+  const submitForgotPassword = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!forgotEmail || forgotEmail.trim() === '') {
+      setForgotError('Please enter your email address');
+      setForgotSuccess('');
+      return;
+    }
+    try {
+      setForgotLoading(true);
+      setForgotError('');
+      setForgotSuccess('');
+      await sendPasswordResetEmail(auth, forgotEmail);
+      setForgotSuccess('Password reset link sent to your email');
+    } catch (error) {
+      const err = error as { code?: string; message: string };
+      if (err.code === 'auth/user-not-found') {
+        setForgotError('No account found with this email');
+      } else if (err.code === 'auth/invalid-email') {
+        setForgotError('Please enter a valid email address');
+      } else {
+        setForgotError(err.message || 'Failed to send reset email');
+      }
+    } finally {
+      setForgotLoading(false);
+    }
+  };
 
   const onSubmit = async (data: AuthFormValues) => {
     if (!auth || !firestore) {
@@ -125,10 +161,6 @@ export default function LoginPage() {
     }
   };
 
-  const toggleAuthMode = () => {
-    setAuthMode(current => (current === 'signin' ? 'signup' : 'signin'));
-  };
-
   return (
     <main className="flex items-center justify-center min-h-screen p-4">
       <Card className="w-full max-w-sm shadow-2xl rounded-[2.5rem] p-4">
@@ -136,12 +168,53 @@ export default function LoginPage() {
           <Image src="/logo.jpeg" alt="Al Fajr Logo" width={80} height={80} className="rounded-full mb-2 object-cover" />
           {/* <CardTitle className="text-3xl font-headline text-primary">Al Fajr</CardTitle> */}
           <CardDescription>
-            {authMode === 'signin' 
-              ? 'Sign in to your account.' 
-              : "Create an account. The first user to sign up will become the Super Admin."}
+            {authMode === 'forgot_password'
+              ? 'Enter your email to receive a password reset link.'
+              : authMode === 'signin' 
+                ? 'Sign in to your account.' 
+                : "Create an account. The first user to sign up will become the Super Admin."}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {authMode === 'forgot_password' ? (
+            <form onSubmit={submitForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  disabled={forgotLoading}
+                  className="rounded-full"
+                  required
+                />
+              </div>
+              
+              {forgotSuccess && <p className="text-sm text-green-500">{forgotSuccess}</p>}
+              {forgotError && <p className="text-sm font-medium text-destructive">{forgotError}</p>}
+              
+              <Button type="submit" className="w-full rounded-full" disabled={forgotLoading}>
+                {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+              </Button>
+              <div className="text-center">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  onClick={() => {
+                    setAuthMode('signin');
+                    setForgotError('');
+                    setForgotSuccess('');
+                  }}
+                  disabled={forgotLoading}
+                  className="font-normal text-sm"
+                >
+                  Back to Login
+                </Button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {authMode === 'signup' && (
                <div className="space-y-2">
@@ -206,11 +279,29 @@ export default function LoginPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
+            {authMode === 'signin' && (
+              <div className="flex justify-end w-full">
+                <Button 
+                  type="button" 
+                  variant="link" 
+                  className="px-0 py-0 h-auto font-normal text-sm" 
+                  onClick={() => {
+                    setForgotError('');
+                    setForgotSuccess('');
+                    setAuthMode('forgot_password');
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Forgot Password?
+                </Button>
+              </div>
+            )}
             <Button type="submit" className="w-full rounded-full" disabled={isSubmitting}>
               {isSubmitting ? 'Processing...' : (authMode === 'signin' ? 'Sign In' : 'Sign Up')}
               {authMode === 'signin' ? <LogIn className="ml-2 h-4 w-4" /> : <UserPlus className="ml-2 h-4 w-4" />}
             </Button>
           </form>
+          )}
           {/* <div className="mt-4 text-center text-sm">
             {authMode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
             <Button variant="link" onClick={toggleAuthMode} disabled={isSubmitting} className="pl-1">

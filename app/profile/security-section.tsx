@@ -7,6 +7,7 @@ import {
   updatePassword,
   sendPasswordResetEmail
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import { Eye, EyeOff, Loader2, Key } from 'lucide-react';
 
 import { useFirebase } from '@/firebase/provider';
@@ -70,14 +71,19 @@ export function SecuritySection() {
             setNewPassword('');
             setConfirmPassword('');
         } catch (error) {
-            const err = error as any;
-            console.error('Password change error', err);
-            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-                setError('Current password is incorrect');
-            } else if (err.code === 'auth/too-many-requests') {
-                setError('Too many attempts. Please try again later');
+            console.error('Password change error', error);
+            if (error instanceof FirebaseError) {
+                if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                    setError('Current password is incorrect');
+                } else if (error.code === 'auth/too-many-requests') {
+                    setError('Too many attempts. Please try again later');
+                } else {
+                    setError(error.message || 'Failed to update password');
+                }
+            } else if (error instanceof Error) {
+                setError(error.message || 'Failed to update password');
             } else {
-                setError(err.message || 'Failed to update password');
+                setError('Failed to update password');
             }
         } finally {
             setIsChangingPassword(false);
@@ -96,11 +102,14 @@ export function SecuritySection() {
                 description: `Reset email sent to ${user.email}`,
             });
         } catch (error) {
-            const err = error as any;
-            console.error('Reset password error', err);
+            console.error('Reset password error', error);
             // We may not want to overwrite password change errors if they are operating independently,
             // but it's simpler to use the same error state or just the toast.
-            setError(err.message || 'Failed to send reset email');
+            if (error instanceof FirebaseError || error instanceof Error) {
+                setError(error.message || 'Failed to send reset email');
+            } else {
+                setError('Failed to send reset email');
+            }
         } finally {
             setIsSendingReset(false);
         }

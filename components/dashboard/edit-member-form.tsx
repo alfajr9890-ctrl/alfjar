@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { CalendarIcon, UserCog } from 'lucide-react';
@@ -315,6 +316,7 @@ export function EditMemberForm({ memberId }: { memberId: string }) {
             <FormField
               control={form.control}
               name="photo"
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
               render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
                   <FormLabel>Change Member Photo</FormLabel>
@@ -333,7 +335,7 @@ export function EditMemberForm({ memberId }: { memberId: string }) {
                     {member?.photoUrl && (
                         <div className="mt-2">
                             <div className="text-sm font-medium">Current Photo:</div>
-                            <img src={member.photoUrl} alt="Current member" className="h-20 w-20 rounded-md object-cover" />
+                            <Image src={member.photoUrl} alt="Current member" width={80} height={80} className="h-20 w-20 rounded-md object-cover" />
                         </div>
                     )}
                   </FormDescription>

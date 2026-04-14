@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, query, orderBy, limit, where, documentId } from 'firebase/firestore';
+import { collection, query, orderBy, limit, documentId, where } from 'firebase/firestore';
 import { Users, ArrowLeftRight, ArrowUpCircle, ArrowDownCircle, User, AlertCircle } from 'lucide-react';
 import { useCollection } from '@/firebase/firestore/use-collection';
 import { useFirebase, useMemoFirebase } from '@/firebase/provider';
@@ -80,9 +80,9 @@ export default function DashboardPage() {
   );
   const { data: allMembers, isLoading: isLoadingAllMembers } = useCollection<Member>(allMembersQuery);
 
-  // Fetch ALL transactions for summary calculations
-  const allTransactionsQuery = useMemoFirebase(() => 
-    (firestore && profile?.permissions.dashboard.read) ? collection(firestore, 'transactions') : null, 
+  // Fetch all transactions for dashboard stats (same list semantics as transaction-list: full collection when rules allow).
+  const allTransactionsQuery = useMemoFirebase(() =>
+    (firestore && profile?.permissions.dashboard.read) ? collection(firestore, 'transactions') : null,
     [firestore, profile]
   );
   const { data: allTransactions, isLoading: isLoadingAllTransactions } = useCollection<Transaction>(allTransactionsQuery);
@@ -200,7 +200,9 @@ export default function DashboardPage() {
            <Card>
             <CardHeader>
                 <CardTitle>Recent Transactions</CardTitle>
-                <CardDescription>The last {RECENT_TRANSACTIONS_LIMIT} transactions recorded.</CardDescription>
+                <CardDescription>
+                  The last {RECENT_TRANSACTIONS_LIMIT} transactions recorded.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                {isLoadingRecentTransactions || isLoadingMembersForRecentTransactions ? (

@@ -122,7 +122,7 @@ export function TransactionList() {
 
     // Main data fetching effect
     useEffect(() => {
-        if (!firestore || !profile || membersMap.size === 0) {
+        if (!firestore || !profile) {
             return;
         }
 
@@ -132,10 +132,6 @@ export function TransactionList() {
             try {
                 let q: Query<DocumentData> = collection(firestore, 'transactions');
 
-                if (profile.role !== 'super_admin') {
-                    q = query(q, where('creatorId', '==', profile.id));
-                }
-                
                 if (debouncedSearchTerm) {
                     const searchLower = debouncedSearchTerm.toLowerCase();
                     const matchingMemberIds = Array.from(membersMap.values())
@@ -171,8 +167,6 @@ export function TransactionList() {
                 // Fetch count if needed
                 const currentFilterKey = JSON.stringify({
                     term: debouncedSearchTerm,
-                    role: profile.role,
-                    uid: profile.id
                 });
 
                 if (currentFilterKey !== lastCountFilters.current) {
@@ -248,10 +242,6 @@ export function TransactionList() {
 
         try {
             let q: Query<DocumentData> = collection(firestore, 'transactions');
-
-            if (profile.role !== 'super_admin') {
-                q = query(q, where('creatorId', '==', profile.id));
-            }
 
              if (debouncedSearchTerm) {
                 const searchLower = debouncedSearchTerm.toLowerCase();
